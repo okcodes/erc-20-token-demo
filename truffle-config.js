@@ -36,6 +36,12 @@ module.exports = {
    */
 
   networks: {
+    // Sett <http://truffleframework.com/docs/advanced/configuration>
+    development: {
+        host: "127.0.0.1",
+        port: 7545,
+        network_id: "*" // Match any network id
+    }
     // Useful for testing. The `development` name is special - truffle uses it by default
     // if it's defined here and no other network is specified at the command line.
     // You should run a client (like ganache-cli, geth or parity) in a separate terminal
