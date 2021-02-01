@@ -24,4 +24,33 @@ contract('DappToken', async accounts => {
     const adminBalance = await tokenInstance.balanceOf(accounts[0]);
     assert.equal(adminBalance.toNumber(), 1_000_000, 'it allocates the initial supply to the admin account');
   });
+
+  it('transfers token ownership', async () => {
+    // Test `require` statement first by transfering something larger than the sender's balance'
+    // ussing 'call' does not trigger the transaction
+
+    await tokenInstance.transfer.call(accounts[1], 9999999999)
+      .then(assert.fail)
+      .catch(error => {
+        assert(error.message.indexOf('revert') >= 0, 'error message must contain revert');
+      });
+
+
+    const success = await tokenInstance.transfer.call(accounts[1], 250_000, {from: accounts[0]});
+    assert.equal(success, true, 'it returns true');
+
+    const receipt = await tokenInstance.transfer(accounts[1], 250_000, { from: accounts[0] });
+
+    assert.equal(receipt.logs.length, 1, 'triggers one event');
+    assert.equal(receipt.logs[0].event, 'Transfer', 'should be the "Transfer" event');
+    assert.equal(receipt.logs[0].args._from, accounts[0], 'logs the account the tokens are transferred from');
+    assert.equal(receipt.logs[0].args._to, accounts[1], 'logs the account the tokens are transferred to');
+    assert.equal(receipt.logs[0].args._value, 250_000, 'logs the transfer amount');
+
+    const balance_1 = await tokenInstance.balanceOf(accounts[1]);
+    assert.equal(balance_1.toNumber(), 250_000, 'adds the amount to the receiving account');
+
+    const balance_0 = await tokenInstance.balanceOf(accounts[0]);
+    assert.equal(balance_0.toNumber(), 750_000, 'deducts the amount from the sending account');
+  });
 });
