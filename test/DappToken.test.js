@@ -36,7 +36,7 @@ contract('DappToken', async accounts => {
       });
 
 
-    const success = await tokenInstance.transfer.call(accounts[1], 250_000, {from: accounts[0]});
+    const success = await tokenInstance.transfer.call(accounts[1], 250_000, { from: accounts[0] });
     assert.equal(success, true, 'it returns true');
 
     const receipt = await tokenInstance.transfer(accounts[1], 250_000, { from: accounts[0] });
@@ -52,5 +52,24 @@ contract('DappToken', async accounts => {
 
     const balance_0 = await tokenInstance.balanceOf(accounts[0]);
     assert.equal(balance_0.toNumber(), 750_000, 'deducts the amount from the sending account');
+  });
+
+  it('approves tokens for delegated transfer', async () => {
+    // simulated call to 'approve' (using the 'call' function)
+    const success = await tokenInstance.approve.call(accounts[1], 100);
+    assert.equal(success, true, 'it resturns true');
+
+    // Note how then actually calling the function, we don't get just the returned value but a 'receipt?' object.
+
+    // actually calling 'approve' (calling it directly without using the 'call' function)
+    const receipt = await tokenInstance.approve(accounts[1], 100, { from: accounts[0] });
+    assert.equal(receipt.logs.length, 1, 'triggers one event');
+    assert.equal(receipt.logs[0].event, 'Approval', 'should be the "Approval" event');
+    assert.equal(receipt.logs[0].args._owner, accounts[0], 'logs the account the tokens are authorized by');
+    assert.equal(receipt.logs[0].args._spender, accounts[1], 'logs the account the tokens are authorized to');
+    assert.equal(receipt.logs[0].args._value, 100, 'logs the transfer amount');
+
+    const allowance = await tokenInstance.allowance(accounts[0], accounts[1]);
+    assert.equal(allowance.toNumber(), 100, 'stores the allowance for delegated transfer');
   });
 });
