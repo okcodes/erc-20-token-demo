@@ -72,4 +72,56 @@ contract('DappToken', async accounts => {
     const allowance = await tokenInstance.allowance(accounts[0], accounts[1]);
     assert.equal(allowance.toNumber(), 100, 'stores the allowance for delegated transfer');
   });
+
+  it('handles delegated token transfers', async () => {
+    const fromAccount = accounts[2];
+    const toAccount = accounts[3];
+    const spendingAccount = accounts[4];
+
+    // Transfer some tokens to fromAccount (minter grants 100 to fromAccount)
+    const transferReceipt = await tokenInstance.transfer(fromAccount, 100, { from: accounts[0] });
+    // Approve spendinAccount to spend 10 tokens from fromAccount (fromAccount allows spendingAccount to spend 10 tokens)
+    const approveReceipt = await tokenInstance.approve(spendingAccount, 10, { from: fromAccount });
+
+    // Try transferring something larger than the sender's balance
+    await assertThrowsAsync(() => tokenInstance.transferFrom(fromAccount, toAccount, 9_999, { from: spendingAccount }), /revert/, 'cannot transfer values larger than balance');
+
+    // Try transferring something larger than the approved ammount
+    await assertThrowsAsync(() => tokenInstance.transferFrom(fromAccount, toAccount, 20, { from: spendingAccount }), /revert/, 'cannot transfer values larger than approved ammount');
+
+    // Simulated call
+    const success = await tokenInstance.transferFrom.call(fromAccount, toAccount, 10, { from: spendingAccount });
+    assert.equal(success, true);
+
+    // Actual call
+    const receipt = await tokenInstance.transferFrom(fromAccount, toAccount, 10, { from: spendingAccount });
+    assert.equal(receipt.logs.length, 1, 'triggers one event');
+    assert.equal(receipt.logs[0].event, 'Transfer', 'should be the "Transfer" event');
+    assert.equal(receipt.logs[0].args._from, fromAccount, 'logs the account the tokens are transfered from');
+    assert.equal(receipt.logs[0].args._to, toAccount, 'logs the account the tokens are transfered to');
+    assert.equal(receipt.logs[0].args._value, 10, 'logs the transfer amount');
+
+    const balanceOfFromAccount = await tokenInstance.balanceOf(fromAccount);
+    assert.equal(balanceOfFromAccount.toNumber(), 90, 'deducts the amount from the sending account');
+
+    const balanceOfToAccount = await tokenInstance.balanceOf(toAccount);
+    assert.equal(balanceOfToAccount.toNumber(), 10, 'adds the amount to the receiving account');
+
+    const allowance = await tokenInstance.allowance(fromAccount, spendingAccount);
+    assert.equal(allowance.toNumber(), 0, 'deducts the amount form the allowance');
+  })
 });
+
+const assertThrowsAsync = async (fn, errMsgMatcher, msg = '') => {
+  try {
+    await fn();
+  }
+  catch (error) {
+    assert.throws(() => { throw error; }, error, errMsgMatcher, msg);
+    // At this point if assert didn't throw, return to make the assert to pass.
+    return;
+  }
+
+  // If this point is reached, it means the fn didn't throw so assert should fail.
+  assert.fail(`${msg}: expected [Function] to throw an error`);
+}
