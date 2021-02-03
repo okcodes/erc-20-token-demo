@@ -22,3 +22,10 @@ dasToken.transfer(web3.eth.accounts[1], 1, { from: web3.eth.accounts[0] })
 ```
 
 
+how it works:
+- Provision tokens to token sale contract
+- set a token price in wei
+- assign an admin
+- buy tokens
+- end sale
+
