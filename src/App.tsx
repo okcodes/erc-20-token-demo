@@ -1,4 +1,4 @@
-import React, {useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import './App.css';
 import Web3 from 'web3';
 import {provider} from 'web3-core';
@@ -54,19 +54,24 @@ const initContracts = async () => {
     _dappToken.setProvider(_myWeb3Provider);
     const dappToken = await _dappToken.deployed();
     console.log('Dapp Token Address', {dappToken});
+};
 
-    const coinbaseAddress = await _myWeb3.eth.getCoinbase();
-    console.log({coinbaseAddress});
+const getAccount = async () => {
+    return await _myWeb3.eth.getCoinbase();
+};
 
-    const accounts = await _myWeb3.eth.getAccounts();
-    console.log({accounts});
+const getAccounts = async () => {
+    return await _myWeb3.eth.getAccounts();
 };
 
 const App = () => {
 
+    const [account, setAccount] = useState('');
+
     const init = async () => {
         await initEthereum();
         await initContracts();
+        setAccount(await getAccount());
     };
 
     useEffect(() => {
@@ -89,6 +94,8 @@ const App = () => {
             <div>
                 <span>300</span>/<span>10,000,000</span> tokens sold.
             </div>
+
+            <div>Your account {account}</div>
         </div>
     );
 }
