@@ -123,6 +123,8 @@ contract('DappToken', async accounts => {
  * @param {RegExp|String} errMsgMatcher - If provided, it also asserts that the error thrown will have a message matching errMsgMatcher.
  * @param {String} msg - Message to display on error.
  * @returns {Promise<void>}
+ * @version 1.0.0
+ * @author OkCodes <ok@ok.codes>
  */
 const assertThrowsAsync = async (fn, errMsgMatcher, msg = '') => {
   try {
