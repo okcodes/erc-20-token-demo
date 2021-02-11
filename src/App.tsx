@@ -2,8 +2,6 @@ import React, {useEffect, useState} from 'react';
 import './App.css';
 import Web3 from 'web3';
 import {provider} from 'web3-core';
-import DappTokenSaleJson from './_contracts/DappTokenSale.json';
-import DappTokenJson from './_contracts/DappToken.json';
 // This function detects most providers injected at window.ethereum
 import detectEthereumProvider from '@metamask/detect-provider';
 
@@ -45,6 +43,9 @@ const initEthereum = async () => {
 };
 
 const initContracts = async () => {
+    const DappTokenSaleJson = await fetch('_contracts/DappTokenSale.json').then(response => response.json());
+    const DappTokenJson = await fetch('_contracts/DappToken.json').then(response => response.json());
+
     _dappTokenSale = TruffleContract(DappTokenSaleJson);
     _dappTokenSale.setProvider(_myWeb3Provider);
     const dappTokenSale = await _dappTokenSale.deployed();
