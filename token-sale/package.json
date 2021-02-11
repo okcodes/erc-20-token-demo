@@ -1,4 +1,6 @@
 {
+  "author": "okcodes <ok@ok.codes>",
+  "description": "Dapp Token Sale ICO",
   "name": "token-sale",
   "version": "0.1.0",
   "private": true,
