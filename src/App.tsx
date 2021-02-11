@@ -4,31 +4,44 @@ import Web3 from 'web3';
 import {provider} from 'web3-core';
 import DappTokenSaleJson from './_contracts/DappTokenSale.json';
 import DappTokenJson from './_contracts/DappToken.json';
+// This function detects most providers injected at window.ethereum
+import detectEthereumProvider from '@metamask/detect-provider';
 
 const TruffleContract = require('@truffle/contract');
 
 const price = 20;
 const balance = 5;
 
-let _myWeb3Provider: provider;
+let _myWeb3Provider: provider | any;
 let _myWeb3: Web3;
+
 let _dappTokenSale;
 let _dappToken;
 
 const useMetamask = true;
 
-const initWeb3 = () => {
-    if (useMetamask && typeof (window as any).web3 !== 'undefined') {
-        // If a web3 instance is already provided by Meta Mask.
-        console.log('Initialized using metamask');
-        _myWeb3Provider = (window as any).web3.currentProvider;
+const initWithMetamask = async () => {
+    _myWeb3Provider = await detectEthereumProvider(); // _myWeb3Provider === window.ethereum
+    if (_myWeb3Provider) {
+        _myWeb3 = new Web3(_myWeb3Provider);
+        const enableResult = await _myWeb3Provider.request({method: 'eth_requestAccounts'});
+        console.log({enableResult});
     } else {
-        // Specify default instance if no web3 instance provided.
-        console.log('Initialized using local blockchain');
-        _myWeb3Provider = new Web3.providers.HttpProvider('http://127.0.0.1:7545');
+        console.error('Please install MetaMask!');
     }
+};
 
+const initWithLocalBlockchain = async () => {
+    _myWeb3Provider = new Web3.providers.HttpProvider('http://127.0.0.1:7545');
     _myWeb3 = new Web3(_myWeb3Provider);
+};
+
+const initEthereum = async () => {
+    if (useMetamask) {
+        await initWithMetamask();
+    } else {
+        await initWithLocalBlockchain();
+    }
 };
 
 const initContracts = async () => {
@@ -42,17 +55,22 @@ const initContracts = async () => {
     const dappToken = await _dappToken.deployed();
     console.log('Dapp Token Address', {dappToken});
 
-    const x = _myWeb3.eth.getCoinbase(((error, coinbaseAddress) => {
-        console.log({error, coinbaseAddress});
-    }));
-    console.log({x});
+    const coinbaseAddress = await _myWeb3.eth.getCoinbase();
+    console.log({coinbaseAddress});
+
+    const accounts = await _myWeb3.eth.getAccounts();
+    console.log({accounts});
 };
 
 const App = () => {
 
+    const init = async () => {
+        await initEthereum();
+        await initContracts();
+    };
+
     useEffect(() => {
-        initWeb3();
-        initContracts();
+        init();
     }, []);
 
     return (
