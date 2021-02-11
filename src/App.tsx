@@ -67,16 +67,20 @@ const getAccounts = async () => {
 const App = () => {
 
     const [account, setAccount] = useState('');
+    const [loading, setLoading] = useState(true);
 
     const init = async () => {
         await initEthereum();
         await initContracts();
         setAccount(await getAccount());
+        setLoading(false);
     };
 
     useEffect(() => {
         init();
     }, []);
+
+    if (loading) return <Loading/>;
 
     return (
         <div>
@@ -99,5 +103,13 @@ const App = () => {
         </div>
     );
 }
+
+const Loading = () => {
+    return (
+        <div>
+            Loading...
+        </div>
+    )
+};
 
 export default App;
