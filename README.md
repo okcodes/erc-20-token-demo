@@ -3,6 +3,8 @@
 ```
 truffle test
 truffle console
+
+# Migration (make sure to copy the json files of 'build/contracts' to 'public/_contracts'.
 truffle migrate --reset
 ```
 

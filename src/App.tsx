@@ -1,20 +1,23 @@
 import React, {useEffect, useState} from 'react';
 import './App.css';
+// TODO: Consider removing dependency to 'web3' in production since metamask no longer uses it.
 import Web3 from 'web3';
 import {provider} from 'web3-core';
 // This function detects most providers injected at window.ethereum
 import detectEthereumProvider from '@metamask/detect-provider';
+import {fromWei} from 'web3-utils';
 
 const TruffleContract = require('@truffle/contract');
 
-const price = 20;
 const balance = 5;
 
 let _myWeb3Provider: provider | any;
 let _myWeb3: Web3;
 
-let _dappTokenSale;
-let _dappToken;
+let dappTokenSaleTruffleContract: any;
+let dappTokenSaleInstance: any;
+let dappTokenTruffleContract: any;
+let dappTokenInstance: any;
 
 const useMetamask = true;
 
@@ -46,15 +49,15 @@ const initContracts = async () => {
     const DappTokenSaleJson = await fetch('_contracts/DappTokenSale.json').then(response => response.json());
     const DappTokenJson = await fetch('_contracts/DappToken.json').then(response => response.json());
 
-    _dappTokenSale = TruffleContract(DappTokenSaleJson);
-    _dappTokenSale.setProvider(_myWeb3Provider);
-    const dappTokenSale = await _dappTokenSale.deployed();
-    console.log('Dapp Token Sale Address', {dappTokenSale});
+    dappTokenSaleTruffleContract = TruffleContract(DappTokenSaleJson);
+    dappTokenSaleTruffleContract.setProvider(_myWeb3Provider);
+    dappTokenSaleInstance = await dappTokenSaleTruffleContract.deployed();
+    console.log('Dapp Token Sale Address', {dappTokenSaleInstance});
 
-    _dappToken = TruffleContract(DappTokenJson);
-    _dappToken.setProvider(_myWeb3Provider);
-    const dappToken = await _dappToken.deployed();
-    console.log('Dapp Token Address', {dappToken});
+    dappTokenTruffleContract = TruffleContract(DappTokenJson);
+    dappTokenTruffleContract.setProvider(_myWeb3Provider);
+    dappTokenInstance = await dappTokenTruffleContract.deployed();
+    console.log('Dapp Token Address', {dappTokenInstance});
 };
 
 const getAccount = async () => {
@@ -68,12 +71,15 @@ const getAccounts = async () => {
 const App = () => {
 
     const [account, setAccount] = useState('');
+    const [price, setPrice] = useState('');
     const [loading, setLoading] = useState(true);
 
     const init = async () => {
         await initEthereum();
         await initContracts();
         setAccount(await getAccount());
+        const tokenPrice = await dappTokenSaleInstance.tokenPrice();
+        setPrice(fromWei(tokenPrice, 'ether'));
         setLoading(false);
     };
 
@@ -91,7 +97,10 @@ const App = () => {
 
             <p>The price is <span>{price}</span> Ether. You currently have <span>{balance}</span> OKCODES.</p>
 
-            <form onSubmit={() => console.log('wanna buy')}>
+            <form onSubmit={e => {
+                e.preventDefault();
+                console.log('wanna buy');
+            }}>
                 <input value={1} onChange={() => void 0}/>
                 <button type="submit">Buy Tokens</button>
             </form>
