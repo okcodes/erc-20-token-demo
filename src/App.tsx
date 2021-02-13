@@ -9,8 +9,6 @@ import {fromWei} from 'web3-utils';
 
 const TruffleContract = require('@truffle/contract');
 
-const balance = 5;
-
 let _myWeb3Provider: provider | any;
 let _myWeb3: Web3;
 
@@ -72,14 +70,18 @@ const App = () => {
 
     const [account, setAccount] = useState('');
     const [price, setPrice] = useState('');
+    const [balance, setBalance] = useState(0);
     const [loading, setLoading] = useState(true);
 
     const init = async () => {
         await initEthereum();
         await initContracts();
-        setAccount(await getAccount());
+        const account = await getAccount();
+        setAccount(account);
         const tokenPrice = await dappTokenSaleInstance.tokenPrice();
         setPrice(fromWei(tokenPrice, 'ether'));
+        const balanceOfAccount = await dappTokenInstance.balanceOf(account);
+        setBalance(balanceOfAccount.toNumber());
         setLoading(false);
     };
 
