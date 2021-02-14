@@ -80,16 +80,26 @@ const App = () => {
     const init = async () => {
         await initEthereum();
         await initContracts();
+
+        // Get account address data
+
         const account = await getAccount();
         setAccount(account);
-        const tokenPrice = await dappTokenSaleInstance.tokenPrice();
-        setPrice(fromWei(tokenPrice, 'ether'));
-        const tokensSold = await dappTokenSaleInstance.tokensSold();
-        setSold(tokensSold.toNumber());
+
         const balanceOfAccount = await dappTokenInstance.balanceOf(account);
         setBalance(balanceOfAccount.toNumber());
+
+        // Get tokens info
+
+        const tokenPrice = await dappTokenSaleInstance.tokenPrice();
+        setPrice(fromWei(tokenPrice, 'ether'));
+
+        const tokensSold = await dappTokenSaleInstance.tokensSold();
+        setSold(tokensSold.toNumber());
+
         const balanceOfSaleContract = await dappTokenInstance.balanceOf(dappTokenSaleInstance.address);
         setSaleBalance(balanceOfSaleContract.toNumber());
+
         setLoading(false);
     };
 
