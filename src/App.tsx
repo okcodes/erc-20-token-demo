@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useRef, useState} from 'react';
 import './App.css';
 // TODO: Consider removing dependency to 'web3' in production since metamask no longer uses it.
 import Web3 from 'web3';
@@ -70,6 +70,9 @@ const getAccounts = async () => {
 const App = () => {
 
     const [account, setAccount] = useState('');
+    /** Safe way to access the 'current' account value if for whatever reason we need to access it inside a callback. */
+    const accountRef = useRef<string>();
+    accountRef.current = account;
     const [price, setPrice] = useState('');
     const [sold, setSold] = useState(0);
     const [balance, setBalance] = useState(0);
@@ -106,17 +109,20 @@ const App = () => {
             {
                 // NOTE: This event gets called multiple times even for past transactions if 'fromBlock' is 0.
                 // It's not wise to trigger a re-render in this callback.
-                fromBlock: 'latest',
-                // fromBlock: 0,
+                // fromBlock: 'latest',
+                fromBlock: 0,
                 toBlock: 'latest',
-                address: [account],
             }, (error: Error, event: any) => {
                 if (error) {
                     console.log({error});
                     return;
                 }
-                if (event.args[0].toLowerCase() === account) {
+
+                const isEventForCurrentAccount = event.args[0].toLowerCase() === accountRef.current;
+                if (isEventForCurrentAccount) {
+                    console.log('MY Sell', event.args[1].toNumber());
                 } else {
+                    console.log('OTHER GUYs Sell', event.args[1].toNumber());
                 }
             });
 
@@ -129,6 +135,7 @@ const App = () => {
             value: tokensToBuy * TOKEN_PRICE,
             gas: 500_000,
         });
+        console.log("did buy", {receipt});
         setTokensToBuy(0);
         // Wait for Sell event.
     };
