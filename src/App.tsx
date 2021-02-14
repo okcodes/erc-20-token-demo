@@ -112,12 +112,27 @@ const App = () => {
         setSaleBalance(balanceOfSaleContract.toNumber());
     };
 
+    const onAccountsChanged = (accounts: string[]) => {
+        updateAccountInfo();
+    };
+
+    const unsubscribe = () => {
+        if (useMetamask) {
+            _myWeb3Provider.removeEventListener('accountsChanged', onAccountsChanged);
+        }
+    };
+
     const init = async () => {
         await initEthereum();
         await initContracts();
 
-        // Listen for events emitted from contracts
         await updateAccountInfo();
+
+        if (useMetamask) {
+            _myWeb3Provider.addListener('accountsChanged', onAccountsChanged);
+        }
+
+        // Listen for events emitted from contracts
 
         dappTokenSaleInstance.Sell(
             {
@@ -172,6 +187,7 @@ const App = () => {
 
     useEffect(() => {
         init();
+        return unsubscribe;
     }, []);
 
 
@@ -198,7 +214,9 @@ const App = () => {
                 )}
             </form>
 
-            {!isBuying && transactionPendingAccount === account && <b>You've successfully submitted your purchase. It might take a few minutes for your tokens to appear in your account depending on the ethereum network congestion.</b>}
+            {!isBuying && transactionPendingAccount === account &&
+            <b>You've successfully submitted your purchase. It might take a few minutes for your tokens to appear in
+              your account depending on the ethereum network congestion.</b>}
 
             <div>
                 <span>{sold}</span>/<span>{saleBalance}</span> tokens sold.
