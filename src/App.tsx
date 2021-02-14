@@ -84,7 +84,7 @@ const App = () => {
         // Get account address data
 
         const account = await getAccount();
-        setAccount(account);
+        setAccount(account.toLowerCase());
 
         const balanceOfAccount = await dappTokenInstance.balanceOf(account);
         setBalance(balanceOfAccount.toNumber());
@@ -100,6 +100,26 @@ const App = () => {
         const balanceOfSaleContract = await dappTokenInstance.balanceOf(dappTokenSaleInstance.address);
         setSaleBalance(balanceOfSaleContract.toNumber());
 
+        // Listen for events emitted from contracts
+
+        dappTokenSaleInstance.Sell(
+            {
+                // NOTE: This event gets called multiple times even for past transactions if 'fromBlock' is 0.
+                // It's not wise to trigger a re-render in this callback.
+                fromBlock: 'latest',
+                // fromBlock: 0,
+                toBlock: 'latest',
+                address: [account],
+            }, (error: Error, event: any) => {
+                if (error) {
+                    console.log({error});
+                    return;
+                }
+                if (event.args[0].toLowerCase() === account) {
+                } else {
+                }
+            });
+
         setLoading(false);
     };
 
@@ -110,6 +130,7 @@ const App = () => {
             gas: 500_000,
         });
         setTokensToBuy(0);
+        // Wait for Sell event.
     };
 
     useEffect(() => {
