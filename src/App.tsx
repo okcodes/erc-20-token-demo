@@ -69,10 +69,21 @@ const getAccounts = async () => {
 
 const App = () => {
 
+    /** Current address bound to the app in metamask. */
     const [account, setAccount] = useState('');
-    /** Safe way to access the 'current' account value if for whatever reason we need to access it inside a callback. */
+    /** Safe way to access the 'current' {@see account} value if for whatever reason we need to access it inside a callback. */
     const accountRef = useRef<string>();
     accountRef.current = account;
+
+    /** Address of the account that has just bought tokens. It might differ from {@see account} if the user switched their metamask account and the transaction has not yet been confirmed ('Sell' event has not been called). */
+    const [transactionPendingAccount, setTransactionPendingAccount] = useState('');
+    /** Safe way to access the 'current' {@see transactionPendingAccount} value if for whatever reason we need to access it inside a callback. */
+    const transactionPendingAccountRef = useRef<string>();
+    transactionPendingAccountRef.current = transactionPendingAccount;
+
+    /** If the app should show a loading UI to indicate the user is trying to buy tokens. This exists in addition to {@see transactionPendingAccount} because this only lasts until the API call completes, but the latter lasts until the 'Sell' event was emitted. */
+    const [isBuying, setIsBuying] = useState(false);
+
     const [price, setPrice] = useState('');
     const [sold, setSold] = useState(0);
     const [balance, setBalance] = useState(0);
@@ -80,10 +91,7 @@ const App = () => {
     const [loading, setLoading] = useState(true);
     const [tokensToBuy, setTokensToBuy] = useState(0);
 
-    const init = async () => {
-        await initEthereum();
-        await initContracts();
-
+    const updateAccountInfo = async () => {
         // Get account address data
 
         const account = await getAccount();
@@ -102,14 +110,20 @@ const App = () => {
 
         const balanceOfSaleContract = await dappTokenInstance.balanceOf(dappTokenSaleInstance.address);
         setSaleBalance(balanceOfSaleContract.toNumber());
+    };
+
+    const init = async () => {
+        await initEthereum();
+        await initContracts();
 
         // Listen for events emitted from contracts
+        await updateAccountInfo();
 
         dappTokenSaleInstance.Sell(
             {
                 // NOTE: This event gets called multiple times even for past transactions if 'fromBlock' is 0.
                 // It's not wise to trigger a re-render in this callback.
-                // fromBlock: 'latest',
+                // fromBlock: 'latest',7
                 fromBlock: 0,
                 toBlock: 'latest',
             }, (error: Error, event: any) => {
@@ -121,6 +135,14 @@ const App = () => {
                 const isEventForCurrentAccount = event.args[0].toLowerCase() === accountRef.current;
                 if (isEventForCurrentAccount) {
                     console.log('MY Sell', event.args[1].toNumber());
+                    const isCurrentAccountWaitingForPurchase = transactionPendingAccountRef.current === accountRef.current;
+                    if (isCurrentAccountWaitingForPurchase) {
+                        setTimeout(() => {
+                            console.log('Will refresh');
+                            setTransactionPendingAccount('');
+                            updateAccountInfo();
+                        }, 5000);
+                    }
                 } else {
                     console.log('OTHER GUYs Sell', event.args[1].toNumber());
                 }
@@ -130,14 +152,22 @@ const App = () => {
     };
 
     const buyTokens = async () => {
+        // Set the current account as the account that is waiting for a transaction to be confirmed.
+
+        setTransactionPendingAccount(account);
+        setIsBuying(true);
         const receipt = await dappTokenSaleInstance.buyTokens(tokensToBuy, {
             from: account,
             value: tokensToBuy * TOKEN_PRICE,
             gas: 500_000,
         });
-        console.log("did buy", {receipt});
+        console.log("did buy tokens", {receipt});
+
+        setIsBuying(false);
+        // Wait for 'Sell' event before calling 'setTransactionPendingAccount' with an empty string to indicate purchase completed.
+
+        // Reset input
         setTokensToBuy(0);
-        // Wait for Sell event.
     };
 
     useEffect(() => {
@@ -159,9 +189,16 @@ const App = () => {
                 e.preventDefault();
                 buyTokens();
             }}>
-                <input value={tokensToBuy} onChange={e => !isNaN(+e.target.value) && setTokensToBuy(+e.target.value)}/>
-                <button type="submit">Buy Tokens</button>
+                {isBuying ? <div>Buying</div> : (
+                    <>
+                        <input value={tokensToBuy}
+                               onChange={e => !isNaN(+e.target.value) && setTokensToBuy(+e.target.value)}/>
+                        <button type="submit">Buy Tokens</button>
+                    </>
+                )}
             </form>
+
+            {!isBuying && transactionPendingAccount === account && <b>You've successfully submitted your purchase. It might take a few minutes for your tokens to appear in your account depending on the ethereum network congestion.</b>}
 
             <div>
                 <span>{sold}</span>/<span>{saleBalance}</span> tokens sold.
