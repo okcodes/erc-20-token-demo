@@ -20,6 +20,7 @@ contract DappToken {
 
     constructor(uint256 _initialSupply) public {
         // Allocate the initial supply
+        // The total amount of tokens are allocated into the account of whoever created the 'DappToken' contract (the admin).
         balanceOf[msg.sender] = _initialSupply;
         totalSupply = _initialSupply;
     }
