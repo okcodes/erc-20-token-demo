@@ -8,6 +8,7 @@ import detectEthereumProvider from '@metamask/detect-provider';
 import {fromWei} from 'web3-utils';
 
 const TruffleContract = require('@truffle/contract');
+const TOKEN_PRICE = 1_000_000_000_000_000;
 
 let _myWeb3Provider: provider | any;
 let _myWeb3: Web3;
@@ -70,8 +71,11 @@ const App = () => {
 
     const [account, setAccount] = useState('');
     const [price, setPrice] = useState('');
+    const [sold, setSold] = useState(0);
     const [balance, setBalance] = useState(0);
+    const [saleBalance, setSaleBalance] = useState(0);
     const [loading, setLoading] = useState(true);
+    const [tokensToBuy, setTokensToBuy] = useState(0);
 
     const init = async () => {
         await initEthereum();
@@ -80,14 +84,28 @@ const App = () => {
         setAccount(account);
         const tokenPrice = await dappTokenSaleInstance.tokenPrice();
         setPrice(fromWei(tokenPrice, 'ether'));
+        const tokensSold = await dappTokenSaleInstance.tokensSold();
+        setSold(tokensSold.toNumber());
         const balanceOfAccount = await dappTokenInstance.balanceOf(account);
         setBalance(balanceOfAccount.toNumber());
+        const balanceOfSaleContract = await dappTokenInstance.balanceOf(dappTokenSaleInstance.address);
+        setSaleBalance(balanceOfSaleContract.toNumber());
         setLoading(false);
+    };
+
+    const buyTokens = async () => {
+        const receipt = await dappTokenSaleInstance.buyTokens(tokensToBuy, {
+            from: account,
+            value: tokensToBuy * TOKEN_PRICE,
+            gas: 500_000,
+        });
+        setTokensToBuy(0);
     };
 
     useEffect(() => {
         init();
     }, []);
+
 
     if (loading) return <Loading/>;
 
@@ -101,14 +119,14 @@ const App = () => {
 
             <form onSubmit={e => {
                 e.preventDefault();
-                console.log('wanna buy');
+                buyTokens();
             }}>
-                <input value={1} onChange={() => void 0}/>
+                <input value={tokensToBuy} onChange={e => !isNaN(+e.target.value) && setTokensToBuy(+e.target.value)}/>
                 <button type="submit">Buy Tokens</button>
             </form>
 
             <div>
-                <span>300</span>/<span>10,000,000</span> tokens sold.
+                <span>{sold}</span>/<span>{saleBalance}</span> tokens sold.
             </div>
 
             <div>Your account {account}</div>
